@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type {
   CalendarEvent,
+  Draft,
   MailThread,
   PlanStep,
   ToolCategory,
@@ -62,6 +63,25 @@ const emptySchema = z.object({});
 
 function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] || fullName;
+}
+
+/**
+ * Convex reports a thrown handler as "Uncaught Error: … at handler (../convex/…)".
+ * Keep the sentence and drop the frames: the trace should never show internals.
+ */
+function cleanErrorMessage(error: unknown, fallback: string): string {
+  const raw = error instanceof Error ? error.message : String(error ?? "");
+  const sentence = raw.split(/\s+\bat\s+/)[0]?.trim() ?? "";
+  return sentence.replace(/^uncaught error:\s*/i, "").trim() || fallback;
+}
+
+/** Resolve the draft a send targets; a lookup failure must not crash the run. */
+async function loadDraft(draftId: string, ctx: ToolContext): Promise<Draft | null> {
+  try {
+    return await ctx.port.resolveDraft(draftId);
+  } catch {
+    return null;
+  }
 }
 
 function relative(ts: number, now: number): string {
@@ -247,9 +267,12 @@ const definitions: AnyTool[] = [
     sideEffect: true,
     schema: sendSchema,
     describeApproval: async (args, ctx) => {
-      const draft = await ctx.port.getDraft(args.draftId);
+      const draft = await loadDraft(args.draftId, ctx);
       if (!draft) {
-        return { title: "Send drafted email", detail: "This draft could not be loaded." };
+        return {
+          title: "Send drafted email",
+          detail: `No draft matches “${args.draftId}”, so this send cannot run.`,
+        };
       }
       const thread = await ctx.port.getMailThread(draft.threadId);
       return {
@@ -258,9 +281,15 @@ const definitions: AnyTool[] = [
       };
     },
     run: async (args, ctx) => {
-      const draft = await ctx.port.getDraft(args.draftId);
+      // The planner can name the thread instead of the draft; resolve both rather
+      // than failing a send the user already approved.
+      const draft = await loadDraft(args.draftId, ctx);
       if (!draft) {
-        return { ok: false, error: "Draft not found.", summary: "That draft no longer exists." };
+        return {
+          ok: false,
+          error: `No draft matches “${args.draftId}”.`,
+          summary: `I couldn't find a draft for “${args.draftId}”, so nothing was sent. Ask me to draft the reply again and I'll send the new one.`,
+        };
       }
       if (draft.status === "sent") {
         return {
@@ -269,12 +298,21 @@ const definitions: AnyTool[] = [
           summary: "That draft was already sent — I didn't send it twice.",
         };
       }
-      const receipt = await ctx.port.sendDraft(args.draftId);
-      return {
-        ok: true,
-        summary: `Sent **${receipt.subject}** to ${receipt.to}.`,
-        data: { receipt },
-      };
+      try {
+        const receipt = await ctx.port.sendDraft(draft.id);
+        return {
+          ok: true,
+          summary: `Sent **${receipt.subject}** to ${receipt.to}.`,
+          data: { receipt },
+        };
+      } catch (error) {
+        const reason = cleanErrorMessage(error, "The send did not complete.");
+        return {
+          ok: false,
+          error: reason,
+          summary: `The email didn't go out: ${reason}`,
+        };
+      }
     },
   },
   {

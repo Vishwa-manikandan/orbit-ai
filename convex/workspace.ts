@@ -127,7 +127,38 @@ export const createDraft = internalMutation({
 export const getDraft = internalQuery({
   args: { id: v.string() },
   handler: async (ctx, { id }) => {
-    const doc = await ctx.db.get(id as Doc<"drafts">["_id"]);
+    // normalizeId returns null for an id from another table instead of throwing,
+    // so a caller that passed a thread id gets "not found" rather than a crash.
+    const draftId = ctx.db.normalizeId("drafts", id);
+    if (!draftId) return null;
+    const doc = await ctx.db.get(draftId);
+    return doc ? mapDraft(doc) : null;
+  },
+});
+
+/**
+ * The draft a send should act on. Models routinely pass the *thread* id they were
+ * shown instead of the draft id returned by email.draftReply, and failing an
+ * already-approved send on that is a bad trade: when the id decodes as a thread,
+ * fall back to that thread's newest unsent draft. Anything else is `null`, so
+ * the caller can explain exactly what is missing.
+ */
+export const resolveDraft = internalQuery({
+  args: { draftId: v.string() },
+  handler: async (ctx, { draftId }) => {
+    const direct = ctx.db.normalizeId("drafts", draftId);
+    if (direct) {
+      const doc = await ctx.db.get(direct);
+      return doc ? mapDraft(doc) : null;
+    }
+    const threadId = ctx.db.normalizeId("mailThreads", draftId);
+    if (!threadId) return null;
+    const unsent = await ctx.db
+      .query("drafts")
+      .withIndex("by_status", (q) => q.eq("status", "draft"))
+      .order("desc")
+      .take(20);
+    const doc = unsent.find((item) => item.mailThreadId === threadId);
     return doc ? mapDraft(doc) : null;
   },
 });
@@ -136,7 +167,7 @@ export const sendDraft = internalMutation({
   args: { id: v.string() },
   handler: async (ctx, { id }) => {
     const draftId = ctx.db.normalizeId("drafts", id);
-    if (!draftId) throw new Error("Draft not found.");
+    if (!draftId) throw new Error("That draft could not be found, so nothing was sent.");
     const draft = await ctx.db.get(draftId);
     if (!draft) throw new Error("Draft not found.");
     if (draft.status === "sent") throw new Error("Draft was already sent.");

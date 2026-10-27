@@ -277,6 +277,62 @@ describe("tool execution", () => {
     if (!duplicate.ok) expect(duplicate.error).toBe("Draft already sent.");
   });
 
+  it("sends the thread's newest unsent draft when the planner passes a thread id", async () => {
+    // Regression: the model was shown thread ids in the context digest and passed
+    // one as draftId. Normalizing it as a draft id threw inside the send handler
+    // and the approval card fell back to a generic argument dump.
+    const port = createMemoryPort();
+    const tool = getTool("email.sendDraft")!;
+    const context: ToolContext = { port, now: NOW };
+
+    const copy = await tool.describeApproval!({ draftId: "mail_sarah" }, context);
+    expect(copy.title).toBe("Send reply to Sarah Chen");
+    expect(copy.detail).toContain("Re: Q3 launch timeline");
+
+    const result = await tool.run({ draftId: "mail_sarah" }, context);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.summary).toContain("sarah@northwindlabs.com");
+    expect(port.state.drafts[0].status).toBe("sent");
+  });
+
+  it("explains a draft id it cannot resolve instead of failing the run", async () => {
+    const port = createMemoryPort();
+    const tool = getTool("email.sendDraft")!;
+    const context: ToolContext = { port, now: NOW };
+
+    const copy = await tool.describeApproval!({ draftId: "nope" }, context);
+    expect(copy.detail).toContain("No draft matches");
+
+    const result = await tool.run({ draftId: "nope" }, context);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.summary).toContain("nothing was sent");
+      expect(result.error).not.toMatch(/at handler|\.ts:/);
+    }
+    expect(port.state.drafts.every((draft) => draft.status === "draft")).toBe(true);
+  });
+
+  it("keeps a thrown adapter message free of handler stack frames", async () => {
+    const port = createMemoryPort();
+    const tool = getTool("email.sendDraft")!;
+    const context: ToolContext = {
+      port: {
+        ...port,
+        sendDraft: async () => {
+          throw new Error("Uncaught Error: Draft was already sent. at handler (../convex/workspace.ts:139:24)");
+        },
+      },
+      now: NOW,
+    };
+
+    const result = await tool.run({ draftId: "draft_sarah" }, context);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.summary).toContain("Draft was already sent.");
+      expect(result.summary).not.toMatch(/workspace\.ts|at handler/);
+    }
+  });
+
   it("summarizes, searches, and builds a meeting brief from real context", async () => {
     const port = createMemoryPort();
     const context: ToolContext = { port, now: NOW };

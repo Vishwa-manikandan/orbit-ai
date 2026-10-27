@@ -69,6 +69,11 @@ export interface WorkspacePort {
     runId?: string;
   }): Promise<Draft>;
   getDraft(id: string): Promise<Nullable<Draft>>;
+  /**
+   * The draft a send should act on. Accepts a draft id, or a thread id whose
+   * newest unsent draft is the intended target.
+   */
+  resolveDraft(draftId: string): Promise<Nullable<Draft>>;
   sendDraft(id: string): Promise<SendReceipt>;
   listEvents(input: { days: number; now: number }): Promise<CalendarEvent[]>;
   getEvent(id: string): Promise<Nullable<CalendarEvent>>;

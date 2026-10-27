@@ -47,6 +47,7 @@ function makePort(ctx: ActionCtx, runId: Id<"agentRuns">): WorkspacePort {
         runId: runId as string,
       }),
     getDraft: (id) => ctx.runQuery(internal.workspace.getDraft, { id }),
+    resolveDraft: (id) => ctx.runQuery(internal.workspace.resolveDraft, { draftId: id }),
     sendDraft: (id) => ctx.runMutation(internal.workspace.sendDraft, { id }),
     listEvents: (input) => ctx.runQuery(internal.workspace.listEvents, input),
     getEvent: (id) => ctx.runQuery(internal.workspace.getEvent, { id }),

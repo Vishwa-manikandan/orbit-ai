@@ -179,6 +179,17 @@ export function createMemoryPort(seed: MemoryState = makeState()): WorkspacePort
     async getDraft(id) {
       return state.drafts.find((draft) => draft.id === id) ?? null;
     },
+    async resolveDraft(draftId) {
+      const direct = state.drafts.find((draft) => draft.id === draftId);
+      if (direct) return direct;
+      const thread = state.mail.find((item) => item.id === draftId);
+      if (!thread) return null;
+      return (
+        [...state.drafts]
+          .reverse()
+          .find((draft) => draft.threadId === thread.id && draft.status === "draft") ?? null
+      );
+    },
     async sendDraft(id): Promise<SendReceipt> {
       const draft = state.drafts.find((item) => item.id === id);
       if (!draft) throw new Error("Draft not found.");

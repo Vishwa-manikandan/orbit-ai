@@ -24,12 +24,15 @@ test.describe("approval controls", () => {
     await requestDraftSend(page);
     await page.getByRole("button", { name: "Approve & execute" }).click();
 
-    await expect(
-      page
-        .getByTestId("chat-transcript")
-        .getByText("Sent Re: Q3 launch timeline to sarah@northwindlabs.com."),
-    ).toBeVisible();
+    // The assistant's prose comes from whichever planner is configured, so the
+    // proof that the send ran is the execution record itself: expand the trace
+    // and read the adapter's own receipt.
     await expect(page.getByTestId("approval-card").getByText("Approved by Alex")).toBeVisible();
+    const transcript = page.getByTestId("chat-transcript");
+    await transcript.getByRole("button", { name: /Trace Send email/ }).last().click();
+    await expect(
+      transcript.getByText("Sent Re: Q3 launch timeline to sarah@northwindlabs.com."),
+    ).toBeVisible();
 
     await page.goto("/approvals");
     await expect(page.getByText("All clear")).toBeVisible();
