@@ -1,0 +1,448 @@
+@import "tailwindcss";
+
+/*
+ * Theme tokens. Every colour in the UI resolves through one of these variables,
+ * so the light/dark switch changes surfaces, text, borders and accents together
+ * instead of patching components. `?theme=` never appears in URLs: the choice
+ * lives in localStorage and on <html data-theme>.
+ */
+:root {
+  color-scheme: light;
+
+  --canvas: #fbfaf7;
+  --panel: #ffffff;
+  --panel-2: #f6f5f1;
+  --panel-3: #efeee9;
+  --elevated: #ffffff;
+  --inset: #f3f2ed;
+  --hover: rgba(28, 24, 16, 0.055);
+  --line: #e4e2da;
+  --line-soft: #eeece5;
+
+  --text: #1d1b16;
+  --fog: #3f3c34;
+  --muted: #6a665b;
+  --faint: #8d897d;
+
+  --amber: #9a5b10;
+  --amber-bright: #7f4a0b;
+  --accent-ink: #ffffff;
+  --mint: #1c7550;
+  --rose: #ab3a37;
+  --lilac: #5b4bb7;
+
+  --ring: rgba(154, 91, 16, 0.45);
+  --shadow-soft: 0 1px 2px rgba(28, 24, 16, 0.05), 0 12px 32px -24px rgba(28, 24, 16, 0.35);
+  --shadow-pop: 0 2px 6px rgba(28, 24, 16, 0.07), 0 18px 44px -20px rgba(28, 24, 16, 0.3);
+  --grain: 0.014;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --canvas: #0b0c10;
+    --panel: #101218;
+    --panel-2: #14171e;
+    --panel-3: #191d26;
+    --elevated: #15181f;
+    --inset: #0e1015;
+    --hover: rgba(255, 255, 255, 0.055);
+    --line: #232833;
+    --line-soft: #1a1e27;
+
+    --text: #eceef4;
+    --fog: #cfd4df;
+    --muted: #9aa2b2;
+    --faint: #6d7483;
+
+    --amber: #f0b464;
+    --amber-bright: #ffca82;
+    --accent-ink: #1a1206;
+    --mint: #7adcb4;
+    --rose: #ee9090;
+    --lilac: #ab9ef7;
+
+    --ring: rgba(240, 180, 100, 0.55);
+    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 40px -28px rgba(0, 0, 0, 0.9);
+    --shadow-pop: 0 2px 8px rgba(0, 0, 0, 0.5), 0 26px 60px -24px rgba(0, 0, 0, 0.85);
+    --grain: 0.022;
+  }
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --canvas: #0b0c10;
+  --panel: #101218;
+  --panel-2: #14171e;
+  --panel-3: #191d26;
+  --elevated: #15181f;
+  --inset: #0e1015;
+  --hover: rgba(255, 255, 255, 0.055);
+  --line: #232833;
+  --line-soft: #1a1e27;
+
+  --text: #eceef4;
+  --fog: #cfd4df;
+  --muted: #9aa2b2;
+  --faint: #6d7483;
+
+  --amber: #f0b464;
+  --amber-bright: #ffca82;
+  --accent-ink: #1a1206;
+  --mint: #7adcb4;
+  --rose: #ee9090;
+  --lilac: #ab9ef7;
+
+  --ring: rgba(240, 180, 100, 0.55);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 40px -28px rgba(0, 0, 0, 0.9);
+  --shadow-pop: 0 2px 8px rgba(0, 0, 0, 0.5), 0 26px 60px -24px rgba(0, 0, 0, 0.85);
+  --grain: 0.022;
+}
+
+@theme inline {
+  --font-sans: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", ui-sans-serif,
+    system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, "Cascadia Code", Menlo, monospace;
+
+  --color-canvas: var(--canvas);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-panel-3: var(--panel-3);
+  --color-elevated: var(--elevated);
+  --color-inset: var(--inset);
+  --color-hover: var(--hover);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+
+  --color-text: var(--text);
+  --color-fog: var(--fog);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+
+  --color-amber: var(--amber);
+  --color-amber-bright: var(--amber-bright);
+  --color-accent-ink: var(--accent-ink);
+  --color-mint: var(--mint);
+  --color-rose: var(--rose);
+  --color-lilac: var(--lilac);
+
+  --shadow-soft: var(--shadow-soft);
+  --shadow-pop: var(--shadow-pop);
+
+  --animate-fade-up: fade-up 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-pulse-soft: pulse-soft 2s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.8s linear infinite;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes typing {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  40% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+* {
+  border-color: var(--line);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100dvh;
+  background-color: var(--canvas);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* A single, very low-contrast grain keeps large flat surfaces from banding. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: color-mix(in srgb, var(--amber) 24%, transparent);
+  color: var(--text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+button,
+a,
+textarea,
+input,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--text) 16%, transparent) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text) 24%, transparent);
+  background-clip: content-box;
+}
+
+.mono-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.elevated {
+  background: var(--elevated);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-soft);
+}
+
+.popover {
+  background: var(--elevated);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow-pop);
+}
+
+.typing-dot {
+  animation: typing 1.2s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* Markdown output. Everything here is rendered from React elements, never HTML. */
+.chat-prose {
+  font-size: 15px;
+  line-height: 1.72;
+  color: var(--fog);
+  overflow-wrap: anywhere;
+}
+
+.chat-prose > * + * {
+  margin-top: 0.9em;
+}
+
+.chat-prose h1,
+.chat-prose h2,
+.chat-prose h3,
+.chat-prose h4 {
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: -0.011em;
+  line-height: 1.3;
+}
+
+.chat-prose h1 {
+  font-size: 1.35em;
+  margin-top: 1.4em;
+}
+
+.chat-prose h2 {
+  font-size: 1.2em;
+  margin-top: 1.3em;
+}
+
+.chat-prose h3 {
+  font-size: 1.05em;
+  margin-top: 1.2em;
+}
+
+.chat-prose h4 {
+  font-size: 1em;
+  margin-top: 1.1em;
+}
+
+.chat-prose p {
+  margin: 0;
+}
+
+.chat-prose strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.chat-prose em {
+  font-style: italic;
+}
+
+.chat-prose a {
+  color: var(--amber);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.chat-prose a:hover {
+  color: var(--amber-bright);
+}
+
+.chat-prose ul,
+.chat-prose ol {
+  padding-left: 1.35em;
+}
+
+.chat-prose ul {
+  list-style: disc;
+}
+
+.chat-prose ol {
+  list-style: decimal;
+}
+
+.chat-prose li + li {
+  margin-top: 0.3em;
+}
+
+.chat-prose li::marker {
+  color: var(--faint);
+}
+
+.chat-prose blockquote {
+  border-left: 2px solid var(--line);
+  padding-left: 0.9em;
+  color: var(--muted);
+}
+
+.chat-prose hr {
+  border: 0;
+  border-top: 1px solid var(--line-soft);
+  margin: 1.4em 0;
+}
+
+.chat-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--inset);
+  border: 1px solid var(--line-soft);
+  border-radius: 5px;
+  padding: 0.1em 0.35em;
+}
+
+.chat-prose pre {
+  margin: 0;
+}
+
+.chat-prose pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 12.5px;
+}
+
+.chat-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92em;
+  display: block;
+  overflow-x: auto;
+}
+
+.chat-prose th,
+.chat-prose td {
+  border: 1px solid var(--line);
+  padding: 0.5em 0.7em;
+  text-align: left;
+  vertical-align: top;
+}
+
+.chat-prose th {
+  background: var(--panel-2);
+  color: var(--text);
+  font-weight: 600;
+}
