@@ -11,13 +11,11 @@ build/
 dist/
 
 # Environment variables and secrets
-# Never commit a real key: LLM credentials belong in the Convex deployment
-# environment (`npx convex env set`), not in a file.
 .env
 .env.*
 !.env.example
 
-# Convex: local backend state, not source (convex/_generated IS committed)
+# Convex
 .convex/
 convex/*.zip
 
